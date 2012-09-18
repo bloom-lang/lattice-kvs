@@ -1,7 +1,7 @@
 require 'rubygems'
 require 'bud'
 
-require './lpair'
+require 'kvs/lpair'
 
 module KvsProtocol
   state do
