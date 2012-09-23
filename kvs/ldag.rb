@@ -9,6 +9,7 @@ class DagLattice < Bud::Lattice
       reject_input(i) unless i.kind_of? Hash
       reject_input(i) unless i.keys.all? {|k| k.kind_of? Bud::Lattice}
       reject_input(i) unless i.keys.all? {|v| v.kind_of? Bud::Lattice}
+      check_legal_dag(i)
     end
     @v = i
   end
@@ -18,7 +19,6 @@ class DagLattice < Bud::Lattice
     return i if @v.nil?
     return self if i_val.nil?
 
-    [@v, i_val].each {|h| check_legal_dag(h)}
     rv = {}
     @v.each_pair do |k1, val|
       next if i_val.keys.all? {|k2| k2.merge(k1) == k2}
@@ -30,6 +30,7 @@ class DagLattice < Bud::Lattice
       rv[k1] = val
     end
 
+    check_legal_dag(rv)
     wrap_unsafe(rv)
   end
 
@@ -52,11 +53,13 @@ class DagLattice < Bud::Lattice
     @reconcile = [merge_key, merge_val]
   end
 
+  # All elements in a dag must be concurrent; i.e., no element dominates any
+  # other element
   private
   def check_legal_dag(h)
     h.each_key do |k1|
       h.each_key do |k2|
-        next if k1.equal? k2
+        next if k1.equal? k2    # Don't compare a key to itself (NB: not "==")
 
         merge = k1.merge(k2)
         raise Bud::Error unless merge == k2.merge(k1)
