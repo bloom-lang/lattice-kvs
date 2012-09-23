@@ -1,15 +1,15 @@
 require 'rubygems'
 require 'bud'
 
-class DagLattice < Bud::Lattice
-  wrapper_name :ldag
+class DomLattice < Bud::Lattice
+  wrapper_name :ldom
 
   def initialize(i=nil)
     unless i.nil?
       reject_input(i) unless i.kind_of? Hash
       reject_input(i) unless i.keys.all? {|k| k.kind_of? Bud::Lattice}
       reject_input(i) unless i.keys.all? {|v| v.kind_of? Bud::Lattice}
-      check_legal_dag(i)
+      check_legal_dom(i)
     end
     @v = i
   end
@@ -22,7 +22,7 @@ class DagLattice < Bud::Lattice
     rv = {}
     preserve_dominants(@v, i_val, rv)
     preserve_dominants(i_val, @v, rv)
-    check_legal_dag(rv)
+    check_legal_dom(rv)
     wrap_unsafe(rv)
   end
 
@@ -53,10 +53,10 @@ class DagLattice < Bud::Lattice
     @reconcile = [@v.keys.reduce(:merge), @v.values.reduce(:merge)]
   end
 
-  # Sanity check: all elements in a dag must be concurrent. That is, no element
+  # Sanity check: all elements in a dom must be concurrent. That is, no element
   # dominates any other element
   private
-  def check_legal_dag(h)
+  def check_legal_dom(h)
     h.each_key do |k1|
       h.each_key do |k2|
         next if k1.equal? k2    # Don't compare a key to itself (NB: not "==")

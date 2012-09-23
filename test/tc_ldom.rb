@@ -1,12 +1,12 @@
 require './test_common'
-require 'kvs/ldag'
+require 'kvs/ldom'
 
-class RawDagTests < MiniTest::Unit::TestCase
+class RawDomTests < MiniTest::Unit::TestCase
   include LatticeTestSugar
 
   def test_simple_dominate
-    d1 = DagLattice.new(map("k" => max(1)) => set(5))
-    d2 = DagLattice.new(map("k" => max(2)) => set(7))
+    d1 = DomLattice.new(map("k" => max(1)) => set(5))
+    d2 = DomLattice.new(map("k" => max(2)) => set(7))
     [d1.merge(d2), d2.merge(d1)].each do |m|
       assert_equal(1, m.reveal.size)
       assert_equal(d2.fst, m.fst)
@@ -15,8 +15,8 @@ class RawDagTests < MiniTest::Unit::TestCase
   end
 
   def test_simple_concurrent
-    d1 = DagLattice.new(map("k" => max(1)) => set(7))
-    d2 = DagLattice.new(map("j" => max(1)) => set(9))
+    d1 = DomLattice.new(map("k" => max(1)) => set(7))
+    d2 = DomLattice.new(map("j" => max(1)) => set(9))
     [d1.merge(d2), d2.merge(d1)].each do |m|
       assert_equal(2, m.reveal.size)
       assert_equal(map("k" => max(1), "j" => max(1)), m.fst)
@@ -26,9 +26,9 @@ class RawDagTests < MiniTest::Unit::TestCase
 
   def test_fix_lpair_bug
     # b dominates a, c is concurrent with both
-    a = DagLattice.new(map("k" => max(1)) => set(5))
-    b = DagLattice.new(map("k" => max(2)) => set(3))
-    c = DagLattice.new(map("j" => max(1)) => set(7))
+    a = DomLattice.new(map("k" => max(1)) => set(5))
+    b = DomLattice.new(map("k" => max(2)) => set(3))
+    c = DomLattice.new(map("j" => max(1)) => set(7))
 
     a_c = a.merge(c)
     a_b = a.merge(b)
@@ -39,10 +39,10 @@ class RawDagTests < MiniTest::Unit::TestCase
   end
 
   def test_concurrent_perms
-    d1 = DagLattice.new(map("a" => max(1)) => set(2))
-    d2 = DagLattice.new(map("b" => max(1)) => set(3))
-    d3 = DagLattice.new(map("c" => max(1)) => set(4))
-    d4 = DagLattice.new(map("d" => max(1)) => set(5))
+    d1 = DomLattice.new(map("a" => max(1)) => set(2))
+    d2 = DomLattice.new(map("b" => max(1)) => set(3))
+    d3 = DomLattice.new(map("c" => max(1)) => set(4))
+    d4 = DomLattice.new(map("d" => max(1)) => set(5))
     all = [d1, d2, d3, d4]
 
     simple_merge = all.reduce(:merge)
@@ -63,10 +63,10 @@ class RawDagTests < MiniTest::Unit::TestCase
   end
 
   def test_replace_perms
-    d1 = DagLattice.new(map("a" => max(1)) => set(7))
-    d2 = DagLattice.new(map("a" => max(2)) => set(8))
-    d3 = DagLattice.new(map("a" => max(3)) => set(9))
-    d4 = DagLattice.new(map("a" => max(4)) => set(0))
+    d1 = DomLattice.new(map("a" => max(1)) => set(7))
+    d2 = DomLattice.new(map("a" => max(2)) => set(8))
+    d3 = DomLattice.new(map("a" => max(3)) => set(9))
+    d4 = DomLattice.new(map("a" => max(4)) => set(0))
     all = [d1, d2, d3, d4]
 
     simple_merge = all.reduce(:merge)
@@ -78,10 +78,10 @@ class RawDagTests < MiniTest::Unit::TestCase
   end
 
   def test_replace_concurrent_mix_perms
-    d1 = DagLattice.new(map("a" => max(1)) => set(2))
-    d1_next = DagLattice.new(map("a" => max(2)) => set(7))
-    d2 = DagLattice.new(map("b" => max(1)) => set(3))
-    d3 = DagLattice.new(map("c" => max(1)) => set(4))
+    d1 = DomLattice.new(map("a" => max(1)) => set(2))
+    d1_next = DomLattice.new(map("a" => max(2)) => set(7))
+    d2 = DomLattice.new(map("b" => max(1)) => set(3))
+    d3 = DomLattice.new(map("c" => max(1)) => set(4))
     all = [d1, d1_next, d2, d3]
 
     simple_merge = all.reduce(:merge)
@@ -94,11 +94,11 @@ class RawDagTests < MiniTest::Unit::TestCase
   end
 
   def test_replace_multi_perms
-    d1 = DagLattice.new(map("a" => max(1)) => set(3))
-    d1_next = DagLattice.new(map("a" => max(2)) => set(2))
-    d2 = DagLattice.new(map("b" => max(1)) => set(7))
-    d2_next = DagLattice.new(map("b" => max(2)) => set(5))
-    d3 = DagLattice.new(map("c" => max(1)) => set(11))
+    d1 = DomLattice.new(map("a" => max(1)) => set(3))
+    d1_next = DomLattice.new(map("a" => max(2)) => set(2))
+    d2 = DomLattice.new(map("b" => max(1)) => set(7))
+    d2_next = DomLattice.new(map("b" => max(2)) => set(5))
+    d3 = DomLattice.new(map("c" => max(1)) => set(11))
     all = [d1, d1_next, d2, d2_next, d3]
 
     simple_merge = all.reduce(:merge)
