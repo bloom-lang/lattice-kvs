@@ -21,12 +21,12 @@ class DagLattice < Bud::Lattice
 
     rv = {}
     @v.each_pair do |k1, val|
-      next if i_val.keys.all? {|k2| k2.merge(k1) == k2}
+      next if i_val.keys.any? {|k2| k2.merge(k1) == k2 && k1 != k2}
       rv[k1] = val
     end
 
     i_val.each do |k1, val|
-      next if @v.keys.all? {|k2| k2.merge(k1) == k2}
+      next if @v.keys.any? {|k2| k2.merge(k1) == k2 && k1 != k2}
       rv[k1] = val
     end
 
