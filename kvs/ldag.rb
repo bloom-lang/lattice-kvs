@@ -20,19 +20,8 @@ class DagLattice < Bud::Lattice
     return self if i_val.nil?
 
     rv = {}
-    @v.each_pair do |k1, val|
-      # A key/value pair is included in the output UNLESS there is another key
-      # in the other merge input that dominates it. Note that there can be at
-      # most one such dominating key in either of the inputs.
-      next if i_val.keys.any? {|k2| k2.merge(k1) == k2 && k1 != k2}
-      rv[k1] = val
-    end
-
-    i_val.each do |k1, val|
-      next if @v.keys.any? {|k2| k2.merge(k1) == k2 && k1 != k2}
-      rv[k1] = val
-    end
-
+    preserve_dominants(@v, i_val, rv)
+    preserve_dominants(i_val, @v, rv)
     check_legal_dag(rv)
     wrap_unsafe(rv)
   end
@@ -48,12 +37,20 @@ class DagLattice < Bud::Lattice
   end
 
   private
+  def preserve_dominants(target, other, rv)
+    target.each_pair do |k1, val|
+      # A key/value pair is included in the result UNLESS there is another key
+      # in the other merge input that dominates it. Note that there can be at
+      # most one such dominating key in either of the inputs.
+      next if other.keys.any? {|k2| k2.merge(k1) == k2 && k1 != k2}
+      rv[k1] = val
+    end
+  end
+
+  private
   def compute_reconcile
     return if @v.nil? or @reconcile
-
-    merge_key = @v.keys.reduce(:merge)
-    merge_val = @v.values.reduce(:merge)
-    @reconcile = [merge_key, merge_val]
+    @reconcile = [@v.keys.reduce(:merge), @v.values.reduce(:merge)]
   end
 
   # Sanity check: all elements in a dag must be concurrent. That is, no element
@@ -63,7 +60,6 @@ class DagLattice < Bud::Lattice
     h.each_key do |k1|
       h.each_key do |k2|
         next if k1.equal? k2    # Don't compare a key to itself (NB: not "==")
-
         merge = k1.merge(k2)
         raise Bud::Error unless merge == k2.merge(k1)
         raise Bud::Error if merge == k1
