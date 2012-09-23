@@ -85,4 +85,17 @@ class TestPair < MiniTest::Unit::TestCase
     assert_equal([["j", 4], ["k", 1], ["l", 2]], first_plain.sort)
     assert_equal([9, 99].to_set, last)
   end
+
+  def test_pair_vc_bug
+    a = PairLattice.new([map("k" => max(1)), set(5)])
+    b = PairLattice.new([map("k" => max(2)), set(3)])
+    c = PairLattice.new([map("j" => max(1)), set(7)])
+
+    a_c = a.merge(c)
+    a_b = a.merge(b)
+    a_b_c1 = a_c.merge(b)
+    a_b_c2 = a_b.merge(c)
+    # Bug: these should be the same but they are not
+    assert(a_b_c1 == a_b_c2)
+  end
 end
