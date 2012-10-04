@@ -1,6 +1,11 @@
 require 'rubygems'
 require 'bud'
 
+# XXX: Note that this lattice implementation has a bug -- it is not a valid
+# lattice because it is not associative. In practical terms, that means that the
+# final state of a value might depend not only on the values proposed by
+# clients, but also by the way in which replicas synchronize their states. See
+# test_pair_vc_bug in tc_lpair for an example of the problem.
 class PairLattice < Bud::Lattice
   wrapper_name :lpair
 

@@ -96,6 +96,6 @@ class TestPair < MiniTest::Unit::TestCase
     a_b_c1 = a_c.merge(b)
     a_b_c2 = a_b.merge(c)
     # Bug: these should be the same but they are not
-    assert(a_b_c1 == a_b_c2)
+    assert(a_b_c1 == a_b_c2, "lpair is not associative (known bug)")
   end
 end
