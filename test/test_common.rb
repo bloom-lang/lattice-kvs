@@ -24,6 +24,10 @@ module LatticeTestSugar
     PairLattice.new([x, y])
   end
 
+  def dom(h)
+    DomLattice.new(h)
+  end
+
   def unwrap_map(m)
     m.merge(m) {|k,v| v.reveal}
   end

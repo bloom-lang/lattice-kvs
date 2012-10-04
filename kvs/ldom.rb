@@ -26,12 +26,12 @@ class DomLattice < Bud::Lattice
     wrap_unsafe(rv)
   end
 
-  morph :fst do
+  morph :version do
     compute_reconcile
     @reconcile.first unless @reconcile.nil?
   end
 
-  def snd
+  def value
     compute_reconcile
     @reconcile.last unless @reconcile.nil?
   end
