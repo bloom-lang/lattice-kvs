@@ -8,7 +8,7 @@ class DomLattice < Bud::Lattice
     unless i.nil?
       reject_input(i) unless i.kind_of? Hash
       reject_input(i) unless i.keys.all? {|k| k.kind_of? Bud::Lattice}
-      reject_input(i) unless i.keys.all? {|v| v.kind_of? Bud::Lattice}
+      reject_input(i) unless i.values.all? {|v| v.kind_of? Bud::Lattice}
       check_legal_dom(i)
     end
     @v = i
@@ -40,8 +40,8 @@ class DomLattice < Bud::Lattice
   def preserve_dominants(target, other, rv)
     target.each_pair do |k1, val|
       # A key/value pair is included in the result UNLESS there is another key
-      # in the other merge input that dominates it. Note that there can be at
-      # most one such dominating key in either of the inputs.
+      # in the other input that dominates it. Note that there can be at most one
+      # such dominating key in either of the inputs.
       next if other.keys.any? {|k2| k2.merge(k1) == k2 && k1 != k2}
       rv[k1] = val
     end
@@ -54,7 +54,8 @@ class DomLattice < Bud::Lattice
   end
 
   # Sanity check: all elements in a dom must be concurrent. That is, no element
-  # dominates any other element
+  # dominates any other element. This check is expensive, so it should be
+  # disabled if we're using ldom for anything performance sensitive.
   private
   def check_legal_dom(h)
     h.each_key do |k1|
