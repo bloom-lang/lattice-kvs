@@ -1,8 +1,6 @@
 require 'rubygems'
 require 'bud'
 
-require 'kvs/lpair'
-
 module KvsProtocol
   state do
     channel :kvput, [:reqid, :@addr] => [:key, :val, :client_addr]
