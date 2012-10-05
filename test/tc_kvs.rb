@@ -34,37 +34,40 @@ class TestMergeMapKvs < MiniTest::Unit::TestCase
   def test_vc_simple
     r = KvsReplica.new
     r.run_bg
-    c = KvsClient.new(r.ip_port, PairLattice)
+    c = KvsClient.new(r.ip_port, DomLattice)
     c.run_bg
-    c2 = KvsClient.new(r.ip_port, PairLattice)
+    c2 = KvsClient.new(r.ip_port, DomLattice)
     c2.run_bg
 
+    # initial version from client c
     new_vc = bump_vc(map, c.ip_port)
-    c.write('foo', pair(new_vc, set(5)))
+    c.write('foo', dom(new_vc => set(5)))
     res = c.read('foo')
-    assert_equal({c.ip_port => 1}, unwrap_map(res.fst.reveal))
-    assert_equal([5].to_set, res.snd.reveal)
+    assert_equal(map(c.ip_port => max(1)), res.version)
+    assert_equal(set(5), res.value)
 
+    # concurrent version from client c2
     new_vc = bump_vc(map, c2.ip_port)
-    c2.write('foo', pair(new_vc, set(3)))
+    c2.write('foo', dom(new_vc => set(3)))
     c2_res = c2.read('foo')
-    assert_equal({c.ip_port => 1, c2.ip_port => 1},
-                 unwrap_map(c2_res.fst.reveal))
-    assert_equal([3,5].to_set, c2_res.snd.reveal)
+    assert_equal(map(c.ip_port => max(1), c2.ip_port => max(1)), c2_res.version)
+    assert_equal(set(3, 5), c2_res.value)
 
-    new_vc = bump_vc(res.fst, c.ip_port)
-    c.write('foo', pair(new_vc, set(7)))
+    # c replaces its previous version -- _not_ the merged version that causally
+    # reflects c2's update.  (Note the subtetly here: result should be the merge
+    # of new c value and c2 value; the old c value must be ignored.)
+    new_vc = bump_vc(res.version, c.ip_port)
+    c.write('foo', dom(new_vc => set(7)))
     res = c.read('foo')
-    assert_equal({c.ip_port => 2, c2.ip_port => 1},
-                 unwrap_map(res.fst.reveal))
-    assert_equal([3,5,7].to_set, res.snd.reveal)
+    assert_equal(map(c.ip_port => max(2), c2.ip_port => max(1)), res.version)
+    assert_equal(set(3, 7), res.value)
 
-    new_vc = bump_vc(res.fst, c.ip_port)
-    c.write('foo', pair(new_vc, set(9)))
+    # New c write that dominates all previous versions
+    new_vc = bump_vc(res.version, c.ip_port)
+    c.write('foo', dom(new_vc => set(9)))
     res = c.read('foo')
-    assert_equal({c.ip_port => 3, c2.ip_port => 1},
-                 unwrap_map(res.fst.reveal))
-    assert_equal([9].to_set, res.snd.reveal)
+    assert_equal(map(c.ip_port => max(3), c2.ip_port => max(1)), res.version)
+    assert_equal(set(9), res.value)
 
     [c, c2, r].each {|n| n.stop_bg}
   end
@@ -72,51 +75,51 @@ class TestMergeMapKvs < MiniTest::Unit::TestCase
   def test_repl
     nodes = Array.new(3) { ReplicatedKvsReplica.new }
     nodes.each {|n| n.run_bg}
-    clients = nodes.map {|n| KvsClient.new(n.ip_port, PairLattice)}
+    clients = nodes.map {|n| KvsClient.new(n.ip_port, DomLattice)}
     clients.each {|c| c.run_bg}
 
     c0, c1, c2 = clients
     new_vc = bump_vc(map, c0.ip_port)
-    c0.write('foo', pair(new_vc, set(4)))
+    c0.write('foo', dom(new_vc => set(4)))
     res = c0.read('foo')
-    assert_equal({c0.ip_port => 1}, unwrap_map(res.fst.reveal))
-    assert_equal([4].to_set, res.snd.reveal)
+    assert_equal({c0.ip_port => 1}, unwrap_map(res.version.reveal))
+    assert_equal([4].to_set, res.value.reveal)
 
     c0.cause_repl(nodes[1])
     res = c1.read('foo')
-    assert_equal({c0.ip_port => 1}, unwrap_map(res.fst.reveal))
-    assert_equal([4].to_set, res.snd.reveal)
+    assert_equal({c0.ip_port => 1}, unwrap_map(res.version.reveal))
+    assert_equal([4].to_set, res.value.reveal)
 
-    new_vc = bump_vc(res.fst, c1.ip_port)
-    c1.write('foo', pair(new_vc, set(12)))
+    new_vc = bump_vc(res.version, c1.ip_port)
+    c1.write('foo', dom(new_vc => set(12)))
     res = c1.read('foo')
     assert_equal({c0.ip_port => 1, c1.ip_port => 1},
-                 unwrap_map(res.fst.reveal))
-    assert_equal([12].to_set, res.snd.reveal)
+                 unwrap_map(res.version.reveal))
+    assert_equal([12].to_set, res.value.reveal)
 
     new_vc = bump_vc(map, c2.ip_port)
-    c2.write('foo', pair(new_vc, set(13)))
+    c2.write('foo', dom(new_vc => set(13)))
     res = c2.read('foo')
-    assert_equal({c2.ip_port => 1}, unwrap_map(res.fst.reveal))
-    assert_equal([13].to_set, res.snd.reveal)
+    assert_equal({c2.ip_port => 1}, unwrap_map(res.version.reveal))
+    assert_equal([13].to_set, res.value.reveal)
 
     c1.cause_repl(nodes[2])
     res = c2.read('foo')
     assert_equal({c0.ip_port => 1, c1.ip_port => 1, c2.ip_port => 1},
-                 unwrap_map(res.fst.reveal))
-    assert_equal([12,13].to_set, res.snd.reveal)
+                 unwrap_map(res.version.reveal))
+    assert_equal([12,13].to_set, res.value.reveal)
 
     c2.cause_repl(nodes[1])
     res = c1.read('foo')
     assert_equal({c0.ip_port => 1, c1.ip_port => 1, c2.ip_port => 1},
-                 unwrap_map(res.fst.reveal))
-    assert_equal([12,13].to_set, res.snd.reveal)
+                 unwrap_map(res.version.reveal))
+    assert_equal([12,13].to_set, res.value.reveal)
 
     c1.cause_repl(nodes[0])
     res = c0.read('foo')
     assert_equal({c0.ip_port => 1, c1.ip_port => 1, c2.ip_port => 1},
-                 unwrap_map(res.fst.reveal))
-    assert_equal([12,13].to_set, res.snd.reveal)
+                 unwrap_map(res.version.reveal))
+    assert_equal([12,13].to_set, res.value.reveal)
 
     (nodes + clients).each {|n| n.stop_bg}
   end

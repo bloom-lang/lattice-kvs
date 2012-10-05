@@ -1,5 +1,4 @@
 require './test_common'
-require 'kvs/ldom'
 
 class RawDomTests < MiniTest::Unit::TestCase
   include LatticeTestSugar
@@ -108,5 +107,14 @@ class RawDomTests < MiniTest::Unit::TestCase
     assert_equal(set(2, 5, 11), simple_merge.value)
 
     check_permutations(all)
+  end
+
+  def test_merge_identity
+    d1 = dom(map("a" => max(1)) => set(4), map("b" => max(1)) => set(5))
+    d2 = dom(map("a" => max(1)) => set(4), map("b" => max(1)) => set(5))
+    assert_equal(d1, d2.merge(d1))
+    assert_equal(d2, d2.merge(d1))
+    assert_equal(d1, d1.merge(d2))
+    assert_equal(d2, d1.merge(d2))
   end
 end

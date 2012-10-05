@@ -1,5 +1,4 @@
 require './test_common'
-require 'kvs/lpair'
 
 class SimplePair
   include Bud
